@@ -22,13 +22,20 @@ model_urls = {
 
 class VGG(nn.Module):
 
-    def __init__(self, features, num_classes=1000):
+    def __init__(self, features, num_classes=1000, first_bn=False):
         super(VGG, self).__init__()
+
+        if first_bn:
+            self.pre_bn = nn.BatchNorm2d(3)
+
         self.features = features
         self.classifier = nn.Linear(512, num_classes)
         self._initialize_weights()
 
     def forward(self, x):
+        if hasattr(self, 'pre_bn'):
+            x = self.pre_bn(x)
+
         x = self.features(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)

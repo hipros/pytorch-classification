@@ -167,9 +167,13 @@ def main():
                     num_classes=num_classes,
                     depth=args.depth,
                     block_name=args.block_name,
+                    first_bn=args.first_bn,
                 )
     else:
-        model = models.__dict__[args.arch](num_classes=num_classes)
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            first_bn=args.first_bn,
+            )
 
     model = torch.nn.DataParallel(model).cuda()
     cudnn.benchmark = True
