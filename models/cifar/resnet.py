@@ -7,6 +7,7 @@ and
 https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
 (c) YANG, Wei
 '''
+import torch
 import torch.nn as nn
 import math
 
@@ -17,6 +18,15 @@ def conv3x3(in_planes, out_planes, stride=1):
     "3x3 convolution with padding"
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
                      padding=1, bias=False)
+
+
+class Affine(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.gamma = nn.Parameter(torch.ones(3).view(1, -1, 1, 1))
+        self.beta = nn.Parameter(torch.zeros(3).view(1, -1, 1, 1))
+    def forward(self, x):
+        return self.gamma * x + self.beta
 
 
 class BasicBlock(nn.Module):
@@ -92,7 +102,7 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, depth, num_classes=1000, block_name='BasicBlock', first_bn=False):
+    def __init__(self, depth, num_classes=1000, block_name='BasicBlock', first_bn=False, first_affine=False):
         super(ResNet, self).__init__()
         # Model type specifies number of layers for CIFAR-10 model
         if block_name.lower() == 'basicblock':
@@ -107,7 +117,9 @@ class ResNet(nn.Module):
             raise ValueError('block_name shoule be Basicblock or Bottleneck')
 
         if first_bn:
-            self.pre_bn = nn.BatchNorm2d(3)
+            self.pre = nn.BatchNorm2d(3)
+        elif first_affine:
+            self.pre = Affine()
 
         self.inplanes = 16
         self.conv1 = nn.Conv2d(3, 16, kernel_size=3, padding=1,
@@ -146,8 +158,8 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        if hasattr(self, 'pre_bn'):
-            x = self.pre_bn(x)
+        if hasattr(self, 'pre'):
+            x = self.pre(x)
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)    # 32x32

@@ -79,11 +79,16 @@ parser.add_argument('--gpu-id', default='0', type=str,
                     help='id(s) for CUDA_VISIBLE_DEVICES')
 
 # Options
-parser.add_argument('--normalization_transform', default=True, type=bool)
-parser.add_argument('--first_bn', default=False, type=bool)
+parser.add_argument('--normalization_transform', default="True", type=str)
+parser.add_argument('--first_bn', default="False", type=str)
+parser.add_argument('--first_affine', default="False", type=str)
 
 args = parser.parse_args()
 state = {k: v for k, v in args._get_kwargs()}
+
+args.first_affine = eval(args.first_affine)
+args.first_bn = eval(args.first_bn)
+args.normalization_transform = eval(args.normalization_transform)
 
 # Validate dataset
 assert args.dataset == 'cifar10' or args.dataset == 'cifar100', 'Dataset can only be cifar10 or cifar100.'
@@ -168,13 +173,16 @@ def main():
                     depth=args.depth,
                     block_name=args.block_name,
                     first_bn=args.first_bn,
+                    first_affine=args.first_affine,
                 )
     else:
         model = models.__dict__[args.arch](
             num_classes=num_classes,
             first_bn=args.first_bn,
+            first_affine=args.first_affine,
             )
     print(model)
+    
     model = torch.nn.DataParallel(model).cuda()
     cudnn.benchmark = True
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1000000.0))

@@ -1,6 +1,7 @@
 '''VGG for CIFAR10. FC layers are removed.
 (c) YANG, Wei 
 '''
+import torch
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 import math
@@ -20,21 +21,32 @@ model_urls = {
 }
 
 
+class Affine(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.gamma = nn.Parameter(torch.ones(3).view(1, -1, 1, 1))
+        self.beta = nn.Parameter(torch.zeros(3).view(1, -1, 1, 1))
+    def forward(self, x):
+        return self.gamma * x + self.beta
+
+
 class VGG(nn.Module):
 
-    def __init__(self, features, num_classes=1000, first_bn=False):
+    def __init__(self, features, num_classes=1000, first_bn=False, first_affine=False):
         super(VGG, self).__init__()
 
         if first_bn:
-            self.pre_bn = nn.BatchNorm2d(3)
+            self.pre = nn.BatchNorm2d(3)
+        elif first_affine:
+            self.pre = Affine()
 
         self.features = features
         self.classifier = nn.Linear(512, num_classes)
         self._initialize_weights()
 
     def forward(self, x):
-        if hasattr(self, 'pre_bn'):
-            x = self.pre_bn(x)
+        if hasattr(self, 'pre'):
+            x = self.pre(x)
 
         x = self.features(x)
         x = x.view(x.size(0), -1)
