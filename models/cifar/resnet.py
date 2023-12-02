@@ -10,7 +10,7 @@ https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
 import torch
 import torch.nn as nn
 import math
-from .submodules import Affine
+from .submodules import Affine, Beta, Gamma
 
 __all__ = ['resnet']
 
@@ -94,7 +94,7 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, depth, num_classes=1000, block_name='BasicBlock', first_bn=False, first_affine=False):
+    def __init__(self, depth, num_classes=1000, block_name='BasicBlock', pre_layer=None):
         super(ResNet, self).__init__()
         # Model type specifies number of layers for CIFAR-10 model
         if block_name.lower() == 'basicblock':
@@ -108,10 +108,14 @@ class ResNet(nn.Module):
         else:
             raise ValueError('block_name shoule be Basicblock or Bottleneck')
 
-        if first_bn:
+        if pre_layer == 'bn':
             self.pre = nn.BatchNorm2d(3)
-        elif first_affine:
+        elif pre_layer == 'affine':
             self.pre = Affine()
+        elif pre_layer == 'beta':
+            self.pre = Beta()
+        elif pre_layer == 'gamma':
+            self.pre = Gamma()
 
         self.inplanes = 16
         self.conv1 = nn.Conv2d(3, 16, kernel_size=3, padding=1,

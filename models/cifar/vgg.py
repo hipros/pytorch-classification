@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 import math
-from .submodules import Affine
+from .submodules import Affine, Beta, Gamma
 
 
 __all__ = [
@@ -24,13 +24,17 @@ model_urls = {
 
 class VGG(nn.Module):
 
-    def __init__(self, features, num_classes=1000, first_bn=False, first_affine=False):
+    def __init__(self, features, num_classes=1000, pre_layer=None):
         super(VGG, self).__init__()
 
-        if first_bn:
+        if pre_layer == 'bn':
             self.pre = nn.BatchNorm2d(3)
-        elif first_affine:
+        elif pre_layer == 'affine':
             self.pre = Affine()
+        elif pre_layer == 'beta':
+            self.pre = Beta()
+        elif pre_layer == 'gamma':
+            self.pre = Gamma()
 
         self.features = features
         self.classifier = nn.Linear(512, num_classes)

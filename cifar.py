@@ -79,15 +79,12 @@ parser.add_argument('--gpu-id', default='0', type=str,
                     help='id(s) for CUDA_VISIBLE_DEVICES')
 
 # Options
-parser.add_argument('--normalization_transform', default="True", type=str)
-parser.add_argument('--first_bn', default="False", type=str)
-parser.add_argument('--first_affine', default="False", type=str)
+parser.add_argument('--normalization_transform', default="True", type=str, help="True, False")
+parser.add_argument('--pre_layer', default="None", type=str, help="None, bn, affine, beta, gamma")
 
 args = parser.parse_args()
 state = {k: v for k, v in args._get_kwargs()}
 
-args.first_affine = eval(args.first_affine)
-args.first_bn = eval(args.first_bn)
 args.normalization_transform = eval(args.normalization_transform)
 
 # Validate dataset
@@ -172,14 +169,12 @@ def main():
                     num_classes=num_classes,
                     depth=args.depth,
                     block_name=args.block_name,
-                    first_bn=args.first_bn,
-                    first_affine=args.first_affine,
+                    pre_layer=args.pre_layer,
                 )
     else:
         model = models.__dict__[args.arch](
             num_classes=num_classes,
-            first_bn=args.first_bn,
-            first_affine=args.first_affine,
+            pre_layer=args.pre_layer,
             )
     print(model)
 
