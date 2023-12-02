@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 import math
+from .submodules import Affine
 
 
 __all__ = [
@@ -19,15 +20,6 @@ model_urls = {
     'vgg16': 'https://download.pytorch.org/models/vgg16-397923af.pth',
     'vgg19': 'https://download.pytorch.org/models/vgg19-dcbb9e9d.pth',
 }
-
-
-class Affine(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.gamma = nn.Parameter(torch.ones(3).view(1, -1, 1, 1))
-        self.beta = nn.Parameter(torch.zeros(3).view(1, -1, 1, 1))
-    def forward(self, x):
-        return self.gamma * x + self.beta
 
 
 class VGG(nn.Module):
