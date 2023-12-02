@@ -136,10 +136,10 @@ def main():
         num_classes = 100
 
 
-    trainset = dataloader(root='./data', train=True, download=True, transform=transform_train)
+    trainset = dataloader(root='./data/'+args.dataset, train=True, download=True, transform=transform_train)
     trainloader = data.DataLoader(trainset, batch_size=args.train_batch, shuffle=True, num_workers=args.workers)
 
-    testset = dataloader(root='./data', train=False, download=False, transform=transform_test)
+    testset = dataloader(root='./data/'+args.dataset, train=False, download=False, transform=transform_test)
     testloader = data.DataLoader(testset, batch_size=args.test_batch, shuffle=False, num_workers=args.workers)
 
     # Model
@@ -182,7 +182,7 @@ def main():
             first_affine=args.first_affine,
             )
     print(model)
-    
+
     model = torch.nn.DataParallel(model).cuda()
     cudnn.benchmark = True
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1000000.0))
@@ -260,8 +260,7 @@ def train(trainloader, model, criterion, optimizer, epoch, use_cuda):
         data_time.update(time.time() - end)
 
         if use_cuda:
-            inputs, targets = inputs.cuda(), targets.cuda()#async=True)
-        inputs, targets = torch.autograd.Variable(inputs), torch.autograd.Variable(targets)
+            inputs, targets = inputs.cuda(), targets.cuda()
 
         # compute output
         outputs = model(inputs)
@@ -312,42 +311,42 @@ def test(testloader, model, criterion, epoch, use_cuda):
 
     end = time.time()
     bar = Bar('Processing', max=len(testloader))
-    for batch_idx, (inputs, targets) in enumerate(testloader):
-        # measure data loading time
-        data_time.update(time.time() - end)
+    with torch.no_grad():
+        for batch_idx, (inputs, targets) in enumerate(testloader):
+            # measure data loading time
+            data_time.update(time.time() - end)
 
-        if use_cuda:
-            inputs, targets = inputs.cuda(), targets.cuda()
-        inputs, targets = torch.autograd.Variable(inputs, volatile=True), torch.autograd.Variable(targets)
+            if use_cuda:
+                inputs, targets = inputs.cuda(), targets.cuda()
 
-        # compute output
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
+            # compute output
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
 
-        # measure accuracy and record loss
-        prec1, prec5 = accuracy(outputs.data, targets.data, topk=(1, 5))
-        losses.update(loss.data, inputs.size(0))
-        top1.update(prec1, inputs.size(0))
-        top5.update(prec5, inputs.size(0))
+            # measure accuracy and record loss
+            prec1, prec5 = accuracy(outputs.data, targets.data, topk=(1, 5))
+            losses.update(loss.data, inputs.size(0))
+            top1.update(prec1, inputs.size(0))
+            top5.update(prec5, inputs.size(0))
 
-        # measure elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
+            # measure elapsed time
+            batch_time.update(time.time() - end)
+            end = time.time()
 
-        # plot progress
-        bar.suffix  = '({batch}/{size}) Data: {data:.3f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss: {loss:.4f} | top1: {top1: .4f} | top5: {top5: .4f}'.format(
-                    batch=batch_idx + 1,
-                    size=len(testloader),
-                    data=data_time.avg,
-                    bt=batch_time.avg,
-                    total=bar.elapsed_td,
-                    eta=bar.eta_td,
-                    loss=losses.avg,
-                    top1=top1.avg,
-                    top5=top5.avg,
-                    )
-        bar.next()
-    bar.finish()
+            # plot progress
+            bar.suffix  = '({batch}/{size}) Data: {data:.3f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss: {loss:.4f} | top1: {top1: .4f} | top5: {top5: .4f}'.format(
+                        batch=batch_idx + 1,
+                        size=len(testloader),
+                        data=data_time.avg,
+                        bt=batch_time.avg,
+                        total=bar.elapsed_td,
+                        eta=bar.eta_td,
+                        loss=losses.avg,
+                        top1=top1.avg,
+                        top5=top5.avg,
+                        )
+            bar.next()
+        bar.finish()
     return (losses.avg, top1.avg)
 
 def save_checkpoint(state, is_best, checkpoint='checkpoint', filename='checkpoint.pth.tar'):
