@@ -81,11 +81,13 @@ parser.add_argument('--gpu-id', default='0', type=str,
 # Options
 parser.add_argument('--normalization-transform', default="True", type=str, help="True, False")
 parser.add_argument('--pre-layer', default="None", type=str, help="None, bn, affine, beta, gamma")
+parser.add_argument('--no-wd-pre-layer', default="True", type=str, help="True, False")
 
 args = parser.parse_args()
 state = {k: v for k, v in args._get_kwargs()}
 
 args.normalization_transform = eval(args.normalization_transform)
+args.no_wd_pre_layer = eval(args.no_wd_pre_layer)
 
 # Validate dataset
 assert args.dataset == 'cifar10' or args.dataset == 'cifar100', 'Dataset can only be cifar10 or cifar100.'
@@ -182,8 +184,10 @@ def main():
     cudnn.benchmark = True
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1000000.0))
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
-
+    parameters_for_training = [param for name, param in model.named_parameters()
+                               if not (args.no_wd_pre_layer and name.startswith('module.pre'))]
+    optimizer = optim.SGD(parameters_for_training, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+    
     # Resume
     title = 'cifar-10-' + args.arch
     if args.resume:
@@ -359,11 +363,3 @@ def adjust_learning_rate(optimizer, epoch):
 
 if __name__ == '__main__':
     main()
-
-"""
-parser.add_argument('--no_wd_pre_layer', default="True", type=str, help="True, False")
-args.no_wd_prelayer = eval(args.no_wd_prelayer)
-    parameters_for_training = [param for name, param in model.named_parameters() 
-                      if not (args.no_wd_prelayer and name.startswith('module.pre'))]
-    optimizer = optim.SGD(parameters_for_training, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
-"""
