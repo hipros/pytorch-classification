@@ -51,7 +51,7 @@ parser.add_argument('--gamma', type=float, default=0.1, help='LR is multiplied b
 parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                     help='momentum')
 parser.add_argument('--weight-decay', '--wd', default=5e-4, type=float,
-                    metavar='W', help='weight decay (default: 1e-4)')
+                    metavar='W', help='weight decay (default: 5e-4)')
 # Checkpoints
 parser.add_argument('-c', '--checkpoint', default='checkpoint', type=str, metavar='PATH',
                     help='path to save checkpoint (default: checkpoint)')
@@ -184,9 +184,15 @@ def main():
     cudnn.benchmark = True
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1000000.0))
     criterion = nn.CrossEntropyLoss()
-    parameters_for_training = [param for name, param in model.named_parameters()
-                               if not (args.no_wd_pre_layer and name.startswith('module.pre'))]
-    optimizer = optim.SGD(parameters_for_training, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+    if args.no_wd_pre_layer:
+        parameters_wo_pre_layer = [param for name, param in model.named_parameters()
+                               if not name.startswith('module.pre')]
+        optimizer = optim.SGD([
+                            {'params': parameters_wo_pre_layer},
+                            {'params': model.module.pre.parameters(), 'weight_decay': 0.0}
+                           ], lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+    else:
+        optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     
     # Resume
     title = 'cifar-10-' + args.arch
